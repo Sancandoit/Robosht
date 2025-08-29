@@ -1,0 +1,12 @@
+bosch-dsn-demo/
+├─ README.md
+├─ requirements.txt
+├─ .streamlit/
+│  └─ config.toml
+├─ app.py
+├─ pages/
+│  ├─ 1_Digital_Twin.py
+│  └─ 2_GenAI_Maintenance_Assistant.py
+└─ data/
+   ├─ line_schedule.csv
+   └─ sensor_logs.csv
