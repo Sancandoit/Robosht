@@ -12,7 +12,6 @@ def load_schedule():
     import os, pandas as pd
     path = "data/line_schedule.csv"
     if not os.path.exists(path):
-        # fallback synthetic schedule
         df = pd.DataFrame({
             "start_time": pd.date_range("2025-08-29 08:00", periods=8, freq="30min"),
             "planned_minutes": [30]*8,
@@ -22,7 +21,6 @@ def load_schedule():
         df = pd.read_csv(path, parse_dates=["start_time"])
     df["end_time"] = df["start_time"] + pd.to_timedelta(df["planned_minutes"], unit="m")
     return df
-
 
 df = load_schedule()
 
