@@ -28,7 +28,6 @@ def load_logs():
         df = pd.read_csv(path, parse_dates=["timestamp"])
     return df
 
-
 df = load_logs()
 
 st.markdown("### Recent Signals")
