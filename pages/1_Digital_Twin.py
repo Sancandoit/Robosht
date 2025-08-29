@@ -41,6 +41,11 @@ units_capacity = int(np.floor(effective_minutes / cycle_with_buffer) * parallel_
 energy_per_unit_kwh = 2.0 * power_factor  # synthetic model
 energy_total_kwh = units_capacity * energy_per_unit_kwh
 
+peak_tariff = st.sidebar.slider("Peak tariff ($/kWh)", 0.05, 0.25, 0.12)
+cost_total = energy_total_kwh * peak_tariff
+st.metric("Estimated Energy Cost ($)", f"{cost_total:,.2f}")
+
+
 # Overrun risk heuristic
 planned_units = df["planned_units"].sum()
 overrun_minutes = max(0, planned_units - units_capacity) * (cycle_with_buffer / parallel_stations)
