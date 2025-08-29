@@ -132,29 +132,24 @@ def llm_advice(user_prompt, df_slice):
     except Exception as e:
         return f"LLM call failed ({e}); using rule-based advice instead."
 
-# -------- Run analysis --------
-if st.button("Analyze"):
-    with st.spinner("Analyzing signals..."):
-        out = llm_advice(prompt, window_df) if use_llm else rule_based_advice(window_df, prompt)
-# concise summary toggle
-concise = st.toggle("3-sentence summary (presentation)", value=True)
+# -------- Run analysis (single block) --------
+concise = st.toggle("3-sentence summary (presentation)", value=True, key="concise_toggle")
 
 def make_concise(text):
     if not concise:
         return text
-    # crude trim: keep first 3 bullet lines
     lines = [l for l in text.splitlines() if l.strip()]
     keep = []
     for l in lines:
-        if l.startswith("-") or l.startswith("•"):
+        if l.lstrip().startswith(("-", "•")):
             keep.append(l)
-        if len(keep) == 3: 
+        if len(keep) == 3:
             break
     if not keep:
         keep = lines[:3]
     return "**Top-line Summary**\n" + "\n".join(keep)
 
-if st.button("Analyze"):
+if st.button("Analyze", key="analyze_btn"):
     with st.spinner("Analyzing signals..."):
         raw = llm_advice(prompt, window_df) if use_llm else rule_based_advice(window_df, prompt)
         st.markdown(make_concise(raw))
@@ -163,7 +158,6 @@ if st.button("Analyze"):
         else:
             with st.expander("Full recommendation"):
                 st.markdown(raw)
-
 
 # -------- Export as maintenance ticket --------
 import io
