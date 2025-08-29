@@ -26,14 +26,33 @@ def load_schedule():
 df = load_schedule()
 
 # ---------- Controls ----------
+simple = st.session_state.get("present_mode", True)
+
 st.sidebar.header("Scenario Controls")
-shift_hours = st.sidebar.slider("Shift length (hours)", 6, 12, 8, help="Total time window for the plan.")
-test_time_min = st.sidebar.slider("Avg test duration per unit (min)", 10, 60, 30, help="Cycle time per unit.")
-utilization = st.sidebar.slider("Target utilization (%)", 50, 95, 80, help="Higher utilization increases risk of overruns.")
-power_factor = st.sidebar.slider("Energy load factor (0.8–1.5)", 0.8, 1.5, 1.05, step=0.01, help="Represents energy intensity.")
-parallel_stations = st.sidebar.slider("Parallel test stations", 1, 6, 3, help="How many stations run in parallel.")
-downtime_buffer = st.sidebar.slider("Expected micro-stops per shift (min)", 0, 60, 15, help="Small interruptions, changeovers, etc.")
-peak_tariff = st.sidebar.slider("Peak tariff ($/kWh)", 0.05, 0.25, 0.12, help="Approximate cost per kWh.")
+if simple:
+    # Minimal controls for class
+    shift_hours = st.sidebar.slider("Shift length (h)", 6, 12, 8)
+    test_time_min = st.sidebar.slider("Avg test time (min)", 10, 60, 30)
+    utilization = st.sidebar.slider("Utilization (%)", 50, 95, 80)
+    parallel_stations = st.sidebar.slider("Stations", 1, 6, 3)
+    power_factor = 1.05
+    downtime_buffer = 15
+    peak_tariff = 0.12
+else:
+    # Full controls for Q&A
+    shift_hours = st.sidebar.slider("Shift length (h)", 6, 12, 8)
+    test_time_min = st.sidebar.slider("Avg test time (min)", 10, 60, 30)
+    utilization = st.sidebar.slider("Utilization (%)", 50, 95, 80)
+    power_factor = st.sidebar.slider("Energy load factor", 0.8, 1.5, 1.05, step=0.01)
+    parallel_stations = st.sidebar.slider("Stations", 1, 6, 3)
+    downtime_buffer = st.sidebar.slider("Micro-stops (min)", 0, 60, 15)
+    peak_tariff = st.sidebar.slider("Tariff ($/kWh)", 0.05, 0.25, 0.12)
+
+# Quick presets (one click)
+cA, cB, cC = st.columns(3)
+if cA.button("Preset: Baseline"): utilization, power_factor, downtime_buffer = 80, 1.05, 15
+if cB.button("Preset: Energy-save"): utilization, power_factor, downtime_buffer = 75, 0.92, 15
+if cC.button("Preset: Rush order"): utilization, power_factor, downtime_buffer = 90, 1.10, 10
 
 # ---------- Computation ----------
 shift_minutes = shift_hours * 60
