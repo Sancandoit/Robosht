@@ -93,31 +93,41 @@ def rule_based_advice(df_slice, user_prompt):
 
 use_llm = st.toggle("Use OpenAI (if `OPENAI_API_KEY` set in Secrets)", value=False)
 
-# -------- LLM advice (OpenAI client with env key; no constructor args) --------
+# -------- LLM advice (module-level API; works across SDK versions) --------
 def llm_advice(user_prompt, df_slice):
     try:
-        # Ensure key is available via Streamlit Secrets / env
-        if not os.getenv("OPENAI_API_KEY"):
+        key = os.getenv("OPENAI_API_KEY", "")
+        if not key:
             return "OpenAI key not configured; using rule-based advice instead."
 
-        from openai import OpenAI
-        client = OpenAI()  # picks up OPENAI_API_KEY from environment
+        import openai
+        openai.api_key = key
 
         summary = df_slice.tail(20)[["timestamp","station","vibration","temperature","error_code"]].to_csv(index=False)
         sys_msg = ("You are a maintenance engineer. Summarize anomalies from the data, estimate risk and time-to-failure, "
                    "and propose concrete next actions. Be concise and actionable. Use bullet points.")
         user_msg = f"User prompt: {user_prompt}\n\nRecent data (CSV):\n{summary}"
 
-        resp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": sys_msg},
-                {"role": "user", "content": user_msg},
-            ],
-            temperature=0.2,
-            max_tokens=400,
-        )
-        return resp.choices[0].message.content
+        # Try modern v1.x call
+        try:
+            resp = openai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role":"system","content":sys_msg},
+                          {"role":"user","content":user_msg}],
+                temperature=0.2,
+                max_tokens=400
+            )
+            return resp.choices[0].message.content
+        except AttributeError:
+            # Fallback for older 0.x SDKs
+            resp = openai.ChatCompletion.create(
+                model="gpt-4o-mini",
+                messages=[{"role":"system","content":sys_msg},
+                          {"role":"user","content":user_msg}],
+                temperature=0.2,
+                max_tokens=400
+            )
+            return resp.choices[0].message["content"]
 
     except Exception as e:
         return f"LLM call failed ({e}); using rule-based advice instead."
