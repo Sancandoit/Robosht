@@ -31,4 +31,4 @@ This demo showcases two DSN-aligned tools:
 """)
 
 st.info("Use the sidebar to open each module.")
-st.markdown("**Group 2 | SP Jain | Technology & Digitisation of Supply Chains**")
+st.markdown("**Group 4 | SP Jain | Technology & Digitisation of Supply Chains**")
