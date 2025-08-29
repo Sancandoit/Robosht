@@ -10,6 +10,7 @@ except Exception:
     OpenAI = None
 
 st.title("GenAI Maintenance Assistant")
+st.markdown("> What this page answers: Can we meet plan within shift, at what energy cost, and where is the risk?")
 st.caption("DSN-aligned: Sense (logs), Collaborate (clear insights), Respond (next actions)")
 
 @st.cache_data
