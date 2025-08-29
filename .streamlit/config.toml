@@ -1,6 +1,6 @@
 [theme]
-primaryColor="#00629b"
-backgroundColor="#ffffff"
-secondaryBackgroundColor="#f2f6f9"
-textColor="#0e1b2b"
+primaryColor="#C0392B"          # light red accent (Bosch red tone)
+backgroundColor="#F7F7F7"       # very light grey background
+secondaryBackgroundColor="#E5E5E5"  # soft grey panels/sidebars
+textColor="#000000"             # black font
 font="sans serif"
