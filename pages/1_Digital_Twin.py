@@ -3,12 +3,6 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-from PIL import Image
-
-# ---- Logo ----
-logo = Image.open("assets/S-P-Jain_Final_logo_color.jpg")
-st.image(logo, width=220)
-
 st.set_page_config(layout="wide")
 st.title("Digital Twin – Engine Test Line (What-If Scheduling)")
 st.markdown("> What this page answers: Can we meet plan within the shift, at what energy cost, and where is the overrun risk?")
