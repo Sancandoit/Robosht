@@ -2,17 +2,17 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from datetime import timedelta
 
+st.set_page_config(layout="wide")
 st.title("Digital Twin – Engine Test Line (What-If Scheduling)")
-st.markdown("> What this page answers: Can we meet plan within shift, at what energy cost, and where is the risk?")
-st.caption("DSN-aligned: Sense (signals), Optimize (simulate), Respond (reschedule)")
+st.markdown("> What this page answers: Can we meet plan within the shift, at what energy cost, and where is the overrun risk?")
 
 @st.cache_data
 def load_schedule():
-    import os, pandas as pd
+    import os
     path = "data/line_schedule.csv"
     if not os.path.exists(path):
+        # Fallback synthetic schedule so the app never breaks
         df = pd.DataFrame({
             "start_time": pd.date_range("2025-08-29 08:00", periods=8, freq="30min"),
             "planned_minutes": [30]*8,
@@ -25,46 +25,48 @@ def load_schedule():
 
 df = load_schedule()
 
+# ---------- Controls ----------
 st.sidebar.header("Scenario Controls")
-shift_hours = st.sidebar.slider("Shift length (hours)", 6, 12, 8)
-test_time_min = st.sidebar.slider("Avg test duration per unit (min)", 10, 60, 30)
-utilization = st.sidebar.slider("Target utilization (%)", 50, 95, 80)
-power_factor = st.sidebar.slider("Energy load factor (0.8–1.5)", 0.8, 1.5, 1.05, step=0.01)
-parallel_stations = st.sidebar.slider("Parallel test stations", 1, 6, 3)
-downtime_buffer = st.sidebar.slider("Expected micro-stops per shift (min)", 0, 60, 15)
+shift_hours = st.sidebar.slider("Shift length (hours)", 6, 12, 8, help="Total time window for the plan.")
+test_time_min = st.sidebar.slider("Avg test duration per unit (min)", 10, 60, 30, help="Cycle time per unit.")
+utilization = st.sidebar.slider("Target utilization (%)", 50, 95, 80, help="Higher utilization increases risk of overruns.")
+power_factor = st.sidebar.slider("Energy load factor (0.8–1.5)", 0.8, 1.5, 1.05, step=0.01, help="Represents energy intensity.")
+parallel_stations = st.sidebar.slider("Parallel test stations", 1, 6, 3, help="How many stations run in parallel.")
+downtime_buffer = st.sidebar.slider("Expected micro-stops per shift (min)", 0, 60, 15, help="Small interruptions, changeovers, etc.")
+peak_tariff = st.sidebar.slider("Peak tariff ($/kWh)", 0.05, 0.25, 0.12, help="Approximate cost per kWh.")
 
-# Compute throughput & energy
+# ---------- Computation ----------
 shift_minutes = shift_hours * 60
 effective_minutes = shift_minutes - downtime_buffer
 cycle_with_buffer = test_time_min * (100/utilization)
 units_capacity = int(np.floor(effective_minutes / cycle_with_buffer) * parallel_stations)
-energy_per_unit_kwh = 2.0 * power_factor  # synthetic model
+
+energy_per_unit_kwh = 2.0 * power_factor     # simple synthetic model
 energy_total_kwh = units_capacity * energy_per_unit_kwh
+energy_cost = energy_total_kwh * peak_tariff
 
-peak_tariff = st.sidebar.slider("Peak tariff ($/kWh)", 0.05, 0.25, 0.12)
-cost_total = energy_total_kwh * peak_tariff
-st.metric("Estimated Energy Cost ($)", f"{cost_total:,.2f}")
-
-
-# Overrun risk heuristic
 planned_units = df["planned_units"].sum()
 overrun_minutes = max(0, planned_units - units_capacity) * (cycle_with_buffer / parallel_stations)
 overrun_flag = overrun_minutes > 0
+feasible = "Yes" if not overrun_flag else "No"
 
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Planned Units (shift)", f"{planned_units}")
-col2.metric("Capacity (units)", f"{units_capacity}")
-col3.metric("Total Energy (kWh)", f"{energy_total_kwh:.1f}")
-col4.metric("Overrun Risk (min)", f"{overrun_minutes:.0f}", delta="⚠️" if overrun_flag else "✅")
+# ---------- KPI Row ----------
+c1, c2, c3, c4, c5 = st.columns(5)
+c1.metric("Planned Units", f"{planned_units}")
+c2.metric("Capacity (units)", f"{units_capacity}")
+c3.metric("Overrun Risk (min)", f"{overrun_minutes:.0f}", delta="⚠️" if overrun_flag else "✅")
+c4.metric("Energy (kWh)", f"{energy_total_kwh:.1f}")
+c5.metric("Est. Energy Cost ($)", f"{energy_cost:,.2f}")
 
-st.markdown("### Workload by Station (synthetic)")
+# ---------- Charts ----------
+st.subheader("Workload by Station")
 df_vis = df.copy()
 df_vis["station"] = (df_vis.index % parallel_stations) + 1
 df_vis["actual_minutes"] = np.clip(df_vis["planned_minutes"] * (1 + (1-utilization/100)*0.2), 5, None)
 fig = px.bar(df_vis, x="station", y="actual_minutes", color="station", title="Load per Station (min)")
 st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("### Energy Profile (synthetic)")
+st.subheader("Energy Profile (Synthetic)")
 time_axis = pd.date_range(df["start_time"].min(), periods=shift_minutes, freq="min")
 base = np.sin(np.linspace(0, 6.283, len(time_axis))) * 0.1 + 1
 energy_series = base * power_factor * parallel_stations
@@ -72,18 +74,32 @@ energy_df = pd.DataFrame({"time": time_axis, "kW": energy_series*10})
 fig2 = px.line(energy_df, x="time", y="kW", title="Energy Load (kW) across Shift")
 st.plotly_chart(fig2, use_container_width=True)
 
-st.markdown("### Recommendations")
+# ---------- Scenario save/compare ----------
+st.subheader("Scenario Compare")
+if "scenarios" not in st.session_state:
+    st.session_state.scenarios = {}
+name = st.text_input("Save scenario as (e.g., Baseline, +1 Station)")
+if st.button("Save scenario") and name:
+    st.session_state.scenarios[name] = dict(
+        planned=planned_units, capacity=units_capacity, overrun=overrun_minutes,
+        kwh=float(f"{energy_total_kwh:.2f}"), cost=float(f"{energy_cost:.2f}")
+    )
+if st.session_state.scenarios:
+    st.dataframe(pd.DataFrame(st.session_state.scenarios).T)
+
+# ---------- Recommendations ----------
+st.subheader("Recommendations")
 recs = []
 if overrun_flag:
-    recs.append("Reduce test duration by 5–10% via standardized steps or pre-checks (tech illustrator playbook).")
-    recs.append("Increase parallel stations by 1 or add micro-shift (+30 min) to eliminate overrun.")
+    recs.append("Reduce cycle time by 5–10% via standardised pre-checks or add micro-shift (+30 min).")
+    recs.append("Consider +1 parallel station if demand persists.")
 if power_factor > 1.2:
-    recs.append("Shift energy-intensive tests away from peak windows to flatten the load curve (AI energy optimizer).")
+    recs.append("Shift energy-intensive tests off-peak or sequence for flatter load.")
 if downtime_buffer > 30:
-    recs.append("Investigate micro-stops root causes; deploy quick kaizen with Solution Advocates.")
+    recs.append("Investigate micro-stops; deploy quick kaizen with Solution Advocates.")
 if not recs:
-    recs.append("Plan is feasible within shift. Consider piloting shorter cycles to create buffer for variability.")
+    recs.append("Plan is feasible. Pilot shorter cycles to create variability buffer.")
 for r in recs:
     st.write("•", r)
 
-st.caption("MBA note: This is a DSN control-tower-lite view—tying capture→simulate→decide into a single loop.")
+st.caption("MBA note: DSN control-tower-lite — capture → simulate → decide on one page.")
