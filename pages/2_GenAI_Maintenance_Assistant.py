@@ -4,6 +4,12 @@ import pandas as pd
 import numpy as np
 from datetime import timedelta
 
+from PIL import Image
+
+# ---- Logo ----
+logo = Image.open("assets/S-P-Jain_Final_logo_color.jpg")
+st.image(logo, width=220)
+
 st.set_page_config(layout="wide")
 st.title("GenAI Maintenance Assistant")
 st.markdown("> What this page answers: What’s going wrong, how risky is it, and what should technicians do next?")
