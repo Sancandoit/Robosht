@@ -77,6 +77,25 @@ c3.metric("Overrun Risk (min)", f"{overrun_minutes:.0f}", delta="⚠️" if over
 c4.metric("Energy (kWh)", f"{energy_total_kwh:.1f}")
 c5.metric("Est. Energy Cost ($)", f"{energy_cost:,.2f}")
 
+# traffic-light helper
+def badge(txt, color):
+    st.markdown(f"<div style='display:inline-block;padding:6px 10px;border-radius:8px;background:{color};color:#000;font-weight:600;margin-right:6px;'>{txt}</div>", unsafe_allow_html=True)
+
+st.subheader("Executive Summary")
+colA, colB = st.columns([2,1])
+
+with colA:
+    bullet1 = f"Capacity {units_capacity} vs plan {planned_units} → {'feasible' if not overrun_flag else 'shortfall'}"
+    bullet2 = f"Energy ≈ {energy_total_kwh:.1f} kWh (≈ ${energy_cost:,.0f})"
+    bullet3 = "Main lever: " + ("reduce cycle or +1 station" if overrun_flag else "lock plan; trial shorter cycles")
+    st.markdown(f"- {bullet1}\n- {bullet2}\n- {bullet3}")
+with colB:
+    if overrun_flag: badge("Overrun risk", "#FADBD8")
+    else: badge("On plan", "#D5F5E3")
+    if power_factor > 1.2: badge("High energy load", "#FDEDEC")
+    if downtime_buffer > 30: badge("Micro-stops high", "#FDEBD0")
+
+
 # ---------- Charts ----------
 st.subheader("Workload by Station")
 df_vis = df.copy()
