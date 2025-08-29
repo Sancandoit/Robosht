@@ -95,14 +95,34 @@ with colB:
     if power_factor > 1.2: badge("High energy load", "#FDEDEC")
     if downtime_buffer > 30: badge("Micro-stops high", "#FDEBD0")
 
+# ---------- Charts (decluttered with tabs) ----------
 tab1, tab2 = st.tabs(["Summary", "Details"])
 
 with tab1:
+    st.subheader("Workload by Station")
+    df_vis = df.copy()
+    df_vis["station"] = (df_vis.index % parallel_stations) + 1
+    df_vis["actual_minutes"] = np.clip(
+        df_vis["planned_minutes"] * (1 + (1 - utilization/100) * 0.2), 5, None
+    )
+    fig = px.bar(
+        df_vis, x="station", y="actual_minutes", color="station",
+        title="Load per Station (min)"
+    )
     st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("Energy Profile (Synthetic)")
+    time_axis = pd.date_range(df["start_time"].min(), periods=shift_minutes, freq="min")
+    base = np.sin(np.linspace(0, 6.283, len(time_axis))) * 0.1 + 1
+    energy_series = base * power_factor * parallel_stations
+    energy_df = pd.DataFrame({"time": time_axis, "kW": energy_series * 10})
+    fig2 = px.line(energy_df, x="time", y="kW", title="Energy Load (kW) across Shift")
     st.plotly_chart(fig2, use_container_width=True)
 
 with tab2:
+    st.subheader("Planned Schedule (raw data)")
     st.dataframe(df, use_container_width=True)
+
 
 # ---------- Scenario save/compare ----------
 st.subheader("Scenario Compare")
