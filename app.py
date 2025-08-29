@@ -1,6 +1,9 @@
 import streamlit as st
 from PIL import Image
 
+present_mode = st.sidebar.toggle("Presentation mode (simple)", value=True)
+st.session_state["present_mode"] = present_mode
+
 st.set_page_config(
     page_title="Bosch Changsha – DSN Demo",
     page_icon="🛠️",
