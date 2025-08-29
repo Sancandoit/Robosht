@@ -5,6 +5,7 @@ import plotly.express as px
 from datetime import timedelta
 
 st.title("Digital Twin – Engine Test Line (What-If Scheduling)")
+st.markdown("> What this page answers: Can we meet plan within shift, at what energy cost, and where is the risk?")
 st.caption("DSN-aligned: Sense (signals), Optimize (simulate), Respond (reschedule)")
 
 @st.cache_data
