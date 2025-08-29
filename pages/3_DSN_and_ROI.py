@@ -1,11 +1,5 @@
 import streamlit as st
 
-from PIL import Image
-
-# ---- Logo ----
-logo = Image.open("assets/S-P-Jain_Final_logo_color.jpg")
-st.image(logo, width=220)
-
 st.set_page_config(layout="wide")
 st.title("DSN & ROI – Cultural Enablement and Reuse Multiplier")
 st.markdown("> What this page answers: Are we building future delivery capacity, and how much ROI scales via replication across plants?")
