@@ -93,27 +93,36 @@ def rule_based_advice(df_slice, user_prompt):
 
 use_llm = st.toggle("Use OpenAI (if `OPENAI_API_KEY` set in Secrets)", value=False)
 
+# -------- LLM advice (OpenAI client with env key; no constructor args) --------
 def llm_advice(user_prompt, df_slice):
     try:
-        from openai import OpenAI
-        key = os.getenv("OPENAI_API_KEY", "")
-        if not key:
+        # Ensure key is available via Streamlit Secrets / env
+        if not os.getenv("OPENAI_API_KEY"):
             return "OpenAI key not configured; using rule-based advice instead."
-        client = OpenAI(api_key=key)
+
+        from openai import OpenAI
+        client = OpenAI()  # picks up OPENAI_API_KEY from environment
+
         summary = df_slice.tail(20)[["timestamp","station","vibration","temperature","error_code"]].to_csv(index=False)
-        sys = ("You are a maintenance engineer. Summarize anomalies, estimate risk & time-to-failure, "
-               "and propose concrete next actions. Be concise and actionable. Use bullet points.")
-        user = f"User prompt: {user_prompt}\n\nRecent data:\n{summary}"
+        sys_msg = ("You are a maintenance engineer. Summarize anomalies from the data, estimate risk and time-to-failure, "
+                   "and propose concrete next actions. Be concise and actionable. Use bullet points.")
+        user_msg = f"User prompt: {user_prompt}\n\nRecent data (CSV):\n{summary}"
+
         resp = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role":"system","content":sys},{"role":"user","content":user}],
+            messages=[
+                {"role": "system", "content": sys_msg},
+                {"role": "user", "content": user_msg},
+            ],
             temperature=0.2,
-            max_tokens=400
+            max_tokens=400,
         )
         return resp.choices[0].message.content
+
     except Exception as e:
         return f"LLM call failed ({e}); using rule-based advice instead."
 
+# -------- Run analysis --------
 if st.button("Analyze"):
     with st.spinner("Analyzing signals..."):
         out = llm_advice(prompt, window_df) if use_llm else rule_based_advice(window_df, prompt)
