@@ -14,8 +14,20 @@ st.caption("DSN-aligned: Sense (logs), Collaborate (clear insights), Respond (ne
 
 @st.cache_data
 def load_logs():
-    df = pd.read_csv("data/sensor_logs.csv", parse_dates=["timestamp"])
+    import os, pandas as pd
+    path = "data/sensor_logs.csv"
+    if not os.path.exists(path):
+        df = pd.DataFrame({
+            "timestamp": pd.date_range("2025-08-29 08:00", periods=16, freq="5min"),
+            "station": [1,2,2,2,1,2,3,2,1,3,2,1,3,2,1,3],
+            "vibration": [4.1,5.0,7.5,7.2,4.8,7.9,5.5,7.1,4.2,5.8,7.6,4.0,5.4,7.3,4.3,5.6],
+            "temperature": [74,78,86,88,80,90,82,89,76,83,92,75,81,91,77,82],
+            "error_code": ["OK","OK","E42","OK","OK","E42","OK","OK","OK","OK","OK","OK","OK","OK","OK","OK"]
+        })
+    else:
+        df = pd.read_csv(path, parse_dates=["timestamp"])
     return df
+
 
 df = load_logs()
 
